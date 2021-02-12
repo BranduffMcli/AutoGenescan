@@ -460,7 +460,7 @@ score.markers3<-function (my.inds, channel = 1, n.inds = NULL, panel = NULL,
 
 #####PARAMETERS TO CHANGE#####
 #Folder
-folder<-"D:/My files/Branduff/Actual documents/Work_desktop_clone/Branduff/Meetings and Team/Team/FSA_scripts/smol/"
+folder<-"PUT PATHWAY TO FOLDER WITH FSA SCRIPTS HERE"
 
 #Position to look for peaks (adjust depending on CAG length)
 BPselection<-c(400:600)
