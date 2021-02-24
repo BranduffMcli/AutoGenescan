@@ -6,3 +6,6 @@ See the associated .docx file for instructions on how to use the script.
 Changelog
 v1.5
 Added an additional output graph without any marked peaks for presenations/publication.
+
+v1.5.1
+Removed data.table as compiling was an issue on Macs.
