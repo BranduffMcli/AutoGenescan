@@ -1,6 +1,5 @@
 #####Load packages#####
 library(tidyverse)
-library(data.table)
 library(Fragman)
 
 get.scores2<-function (my.scores, mark = "mark") 
@@ -467,12 +466,12 @@ BPselection<-c(400:600)
 
 #Utlised Ladder
 ladder_Liz<-c(20,40,60,80,100,114,120,140,160,180,200,214,220,240,250,260,280,300,314,
-                 320,340,360,380,400,414,420,440,460,480,500,514,520,540,560,580,600)
+              320,340,360,380,400,414,420,440,460,480,500,514,520,540,560,580,600)
 
 #ladder_Liz<-c(20,30,40,60,80,100,114,120,140,160,180,200,214,220,240,250,260,280,300,
-              #314,320,340,360,380,400,414,420,440,460,480,500,514,520,540,560,580,600,
-              #614,620,640,660,680,700,714,720,740,760,780,800,820,840,850,860,880,900,
-              #920,940,960,980,1000,1020,1040,1080,1100,1120,1160,1200)
+#314,320,340,360,380,400,414,420,440,460,480,500,514,520,540,560,580,600,
+#614,620,640,660,680,700,714,720,740,760,780,800,820,840,850,860,880,900,
+#920,940,960,980,1000,1020,1040,1080,1100,1120,1160,1200)
 
 #Remove peaks manually; Example: removemepls<-c(1,2,3) would remove the first 3 peaks
 removemepls<-c()
@@ -497,11 +496,18 @@ res<-score.markers3(my.inds = FSA_list, channel = 1, panel=BPselection,ladder=la
 dev.off()
 
 #####Pipeline part 2: Extract data#####
-Oregon_final<-left_join(gather(setDT(get.scores(res), keep.rownames = TRUE)[],
-                               condition,measurement,2:ncol(setDT(get.scores(res), keep.rownames = TRUE)[])),
-                        gather(setDT(get.scores2(res), keep.rownames = TRUE)[],
-                               condition,measurement,2:ncol(setDT(get.scores2(res), keep.rownames = TRUE)[])),
-                        by=c('rn','condition'))
+GS1<-data.frame(get.scores(res))[]
+GS2<-cbind(rownames(GS1), data.frame(GS1, row.names=NULL))
+GS3<-gather(GS2,condition,measurement,2:ncol(GS2))
+colnames(GS3)[1] <- "rn"
+
+RS1<-data.frame(get.scores2(res))[]
+RS2<-cbind(rownames(RS1), data.frame(RS1, row.names=NULL))
+RS3<-gather(RS2,condition,measurement,2:ncol(RS2))
+colnames(RS3)[1] <- "rn"
+
+Oregon_final<-left_join(GS3,RS3,by=c('rn','condition'))
+
 ifelse(is.null(removemepls), print("No peaks skipped"),
        Oregon_final<-Oregon_final[-c(removemepls), ])
 Oregon_final<-Oregon_final %>% tidyr::separate(condition,c('Dye','Dye_no')) 
