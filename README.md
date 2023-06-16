@@ -1,5 +1,5 @@
 # AutoGenescan
-**If you use this script, please cite our paper [McAllister et al., 2022, Nat Neurosci 25 446-457.](https://pubmed.ncbi.nlm.nih.gov/35379994/).**
+**If you use this script, please cite our paper [McAllister et al., 2022, Nat Neurosci 25 446-457.](https://pubmed.ncbi.nlm.nih.gov/35379994/)**
 
 Automated CAG calling pipeline for HTT genescan data. Uses the excellent Fragman package to detect peaks (Giovanny Covarrubias-Pazaran et al. 2016, BMC Genetics 17: 62). These peaks are then used to caculate graphs, modal CAG lengths and various instability/expansion indicies for downstream analyses.
 
