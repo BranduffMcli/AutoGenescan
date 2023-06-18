@@ -12,3 +12,6 @@ Added an additional output graph without any marked peaks for presenations/publi
 
 v1.5.1
 Removed data.table as compiling was an issue on Macs.
+
+v1.6
+Many thanks to Zach McLean for adding weighted CAG measurements (useful for mice and longer CAG models particularly). Also for adding easier control over peak height cutoffs and PCR size adjustment.
