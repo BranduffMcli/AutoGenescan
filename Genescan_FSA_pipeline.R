@@ -473,6 +473,21 @@ ladder_Liz<-c(20,40,60,80,100,114,120,140,160,180,200,214,220,240,250,260,280,30
 #614,620,640,660,680,700,714,720,740,760,780,800,820,840,850,860,880,900,
 #920,940,960,980,1000,1020,1040,1080,1100,1120,1160,1200)
 
+# instability height threshold
+
+height_threshold <- 0.1
+
+# bp size window around modal peak
+## used to find the cluster of peaks around the main peak
+## with the weighted mean calculated for peaks only above threshold and in this window
+
+window_delta <- 60
+
+# amplicon length with the repeat sequence subtracted
+
+amplicon_delta <- 80
+
+
 #Remove peaks manually; Example: removemepls<-c(1,2,3) would remove the first 3 peaks
 removemepls<-c()
 
@@ -521,15 +536,29 @@ Modal_C<-Modal_C[order(Modal_C$measurement.y,decreasing=T),]
 Modal_C<-Modal_C[!duplicated(Modal_C[,c('rn')]),]
 Modal_C<-Modal_C %>% dplyr::select(rn,Dye_no)
 
+## Find weighted mean repeat
+
+weighted_repeat <- Oregon_final %>%
+  left_join(Modal_C, by='rn') %>% 
+  group_by(rn) %>%
+  mutate(modal_size = measurement.x[which(Dye_no.x == Dye_no.y)],
+         modal_height = measurement.y[which(Dye_no.x == Dye_no.y)],
+         repeat_length = (measurement.x - amplicon_delta) / 3) %>% 
+  filter(between(measurement.x, modal_size - window_delta, modal_size + window_delta),
+         measurement.y/modal_height > height_threshold) %>%
+  summarise(weighted_repeat_length = weighted.mean(repeat_length, measurement.y))
+
+
 Oregon_final<-left_join(Oregon_final,Modal_C,by='rn')
 Oregon_final$Rel_PSN<-Oregon_final$Dye_no.x - Oregon_final$Dye_no.y
 
 #####Pipeline part 4: Export Modal output#####
 Summarytable_c<-Oregon_final
 Summarytable_c<-subset(Summarytable_c,Rel_PSN==0)
-Summarytable_c$CAG_modal<-(Summarytable_c$measurement.x - 80) / 3
+Summarytable_c$CAG_modal<-(Summarytable_c$measurement.x - amplicon_delta) / 3
 Summarytable_c<-Summarytable_c %>%
-  select(rn,CAG_modal)
+  select(rn,CAG_modal) %>%
+  left_join(weighted_repeat)
 write.csv(Summarytable_c,paste(folder,'Summary_modalonly.csv',sep=''))
 
 Summarytable_b<-Oregon_final %>%
@@ -540,6 +569,7 @@ write.csv(Summarytable_b,paste(folder,'All_peak_report.csv',sep=''))
 files <- list.files(path=folder,pattern = "\\.fsa$")
 files<-data.frame(files)
 files$startcag=NA
+files$weighted_startcag=NA
 files<-left_join(files,Summarytable_c,by=c('files'='rn')) %>%
   rename(foundcag = CAG_modal)
 write.csv(files,paste(folder,'filelist.csv',sep=''))
@@ -555,13 +585,14 @@ get_max<-Oregon_final %>%
 Oregon_final<-left_join(Oregon_final,get_max,by='rn')
 
 Oregon_final<-left_join(Oregon_final,manifest,by = c('rn'='files'))
-Oregon_final$dasCAG<-(Oregon_final$measurement.x - 80) / 3
+Oregon_final$dasCAG<-(Oregon_final$measurement.x - amplicon_delta) / 3
 Oregon_final$CAGchange<- Oregon_final$dasCAG - Oregon_final$startcag
+Oregon_final$weighted_CAGchange<- Oregon_final$weighted_repeat_length - Oregon_final$weighted_startcag
 
 ##Normalised Instability/Exp/Contraction indices
 BlackRangeMtn<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   summarise(allsum = sum(measurement.y))
 
 Oregon_final<-left_join(Oregon_final,BlackRangeMtn,by='rn')
@@ -571,31 +602,31 @@ Oregon_final$N_II2<- Oregon_final$NPH * Oregon_final$Rel_PSN
 
 BlackRangeMtn2<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   summarise(InstabIndex = sum(N_II))
 
 BlackRangeMtn3<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   filter(Rel_PSN > 0) %>%
   summarise(ExpIndex = sum(N_II))
 
 BlackRangeMtn4<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   filter(Rel_PSN < 0) %>%
   summarise(ConIndex = sum(N_II))
 
 BlackRangeMtn5<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   filter(Rel_PSN > 0) %>%
   summarise(NeueExpIndex = sum(N_II2))
 
 ##Somatic mosacism
 BlueRangeMtn<-Oregon_final %>%
   group_by(rn) %>%
-  filter(measurement.y > (0.1*max(measurement.y))) %>%
+  filter(measurement.y > (height_threshold*max(measurement.y))) %>%
   filter(Rel_PSN > 0) %>%
   summarise(EIndex_sum = sum(measurement.y))
 
@@ -608,7 +639,7 @@ Summarytable_a<-left_join(Summarytable_a,BlackRangeMtn3,by='rn')
 Summarytable_a<-left_join(Summarytable_a,BlackRangeMtn4,by='rn')
 Summarytable_a<-left_join(Summarytable_a,BlackRangeMtn5,by='rn')
 Summarytable_a<-subset(Summarytable_a,Rel_PSN==0)
-Summarytable_a$CAG_modal<-(Summarytable_a$measurement.x - 80) / 3
+Summarytable_a$CAG_modal<-(Summarytable_a$measurement.x - amplicon_delta) / 3
 Summarytable_a<-Summarytable_a %>%
-  select(rn,CAG_modal,CAGchange,InstabIndex,ExpIndex,ConIndex,NeueExpIndex,SomMos)
+  select(rn,CAG_modal,CAGchange,weighted_CAGchange,InstabIndex,ExpIndex,ConIndex,NeueExpIndex,SomMos)
 write.csv(Summarytable_a,paste(folder,'Summary.csv',sep=''))
