@@ -477,12 +477,6 @@ ladder_Liz<-c(20,40,60,80,100,114,120,140,160,180,200,214,220,240,250,260,280,30
 
 height_threshold <- 0.1
 
-# bp size window around modal peak
-## used to find the cluster of peaks around the main peak
-## with the weighted mean calculated for peaks only above threshold and in this window
-
-window_delta <- 60
-
 # amplicon length with the repeat sequence subtracted
 
 amplicon_delta <- 80
@@ -541,11 +535,9 @@ Modal_C<-Modal_C %>% dplyr::select(rn,Dye_no)
 weighted_repeat <- Oregon_final %>%
   left_join(Modal_C, by='rn') %>% 
   group_by(rn) %>%
-  mutate(modal_size = measurement.x[which(Dye_no.x == Dye_no.y)],
-         modal_height = measurement.y[which(Dye_no.x == Dye_no.y)],
+  mutate(modal_height = measurement.y[which(Dye_no.x == Dye_no.y)],
          repeat_length = (measurement.x - amplicon_delta) / 3) %>% 
-  filter(between(measurement.x, modal_size - window_delta, modal_size + window_delta),
-         measurement.y/modal_height > height_threshold) %>%
+  filter(measurement.y/modal_height > height_threshold) %>%
   summarise(weighted_repeat_length = weighted.mean(repeat_length, measurement.y))
 
 
